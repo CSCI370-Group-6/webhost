@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import qs from 'qs'; // Import qs for query string serialization
-import './Form.css'; // Import the CSS file
+import qs from 'qs';
+import './Form.css';
 
 function Form() {
+    // variables for inputs
     const [formData, setFormData] = useState({
         age: '',
         gender: '',
@@ -19,10 +20,15 @@ function Form() {
         car: ''
     });
 
+
     const [argsString, setArgsString] = useState('');
     const [output, setOutput] = useState('');
     const [error, setError] = useState('');
+    const [platformResources, setPlatformResources] = useState(null);
+    const [interestResources, setInterestResources] = useState(null);
+    const [addictionResources, setAddictionResources] = useState(null);
 
+    // functions to handle user inputs
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -33,19 +39,20 @@ function Form() {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // Compile all inputs into a single comma-separated string
+        // combine user inputs into one string
         const compiledArgs = Object.values(formData).join(',').replace(/"/g, '\\"');
-
-        // Escape the entire string with double quotes
         const argsStringWithQuotes = `"${compiledArgs}"`;
 
-        setArgsString(argsStringWithQuotes); // Set the compiled string to be displayed
+        setArgsString(argsStringWithQuotes);
 
-        // Serialize the compiledArgs to be sent as form data
-        const serializedData = qs.stringify({ argsString: argsStringWithQuotes });
+        const serializedData = qs.stringify({ 
+            argsString: argsStringWithQuotes, 
+            platform: formData.platform, 
+            interest: formData.interest, 
+            location: formData.location 
+        });
 
-        console.log('Sending payload:', serializedData); // Log the payload for debugging
-
+        // send user inputs to server
         axios.post('/run-java', serializedData, {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -53,6 +60,9 @@ function Form() {
         })
         .then(response => {
             setOutput(response.data.output);
+            setPlatformResources(response.data.platformResources || null);
+            setInterestResources(response.data.interestResources || null);
+            setAddictionResources(response.data.addictionResources || null);
             setError('');
         })
         .catch(error => {
@@ -61,6 +71,7 @@ function Form() {
         });
     };
 
+    // basic html
     return (
         <div className="form-container">
             <h1>Check Your Social Media Addiction</h1>
@@ -79,8 +90,52 @@ function Form() {
                 <label>Do you own a car: <input type="text" name="car" value={formData.car} onChange={handleChange} /></label>
                 <button type="submit">Calculate</button>
             </form>
-            {/* {argsString && <div><h3>Compiled Args String:</h3><pre>{argsString}</pre></div>} */}
             {output && <div><h3>Program Output:</h3><pre>{output}</pre></div>}
+            {platformResources && (
+                <div>
+                    <h3>Ways to Set Up Time Limits on {formData.platform}:</h3>
+                    <ul>
+                        {platformResources.map((resource, index) => (
+                            <li key={index}>
+                                <a href={resource.link} target="_blank" rel="noopener noreferrer">
+                                    {resource.title}
+                                </a>
+                                <p>{resource.snippet}</p>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+            {interestResources && (
+                <div>
+                    <h3>Resources Near You Related to {formData.interest}:</h3>
+                    <ul>
+                        {interestResources.map((resource, index) => (
+                            <li key={index}>
+                                <a href={resource.link} target="_blank" rel="noopener noreferrer">
+                                    {resource.title}
+                                </a>
+                                <p>{resource.snippet}</p>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+            {addictionResources && (
+                <div>
+                    <h3>Social Media Addiction Resources in {formData.location}:</h3>
+                    <ul>
+                        {addictionResources.map((resource, index) => (
+                            <li key={index}>
+                                <a href={resource.link} target="_blank" rel="noopener noreferrer">
+                                    {resource.title}
+                                </a>
+                                <p>{resource.snippet}</p>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
             {error && <div><h3>Error:</h3><pre>{error}</pre></div>}
         </div>
     );
